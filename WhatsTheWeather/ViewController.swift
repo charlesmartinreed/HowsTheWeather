@@ -14,8 +14,8 @@ class ViewController: UIViewController {
     @IBOutlet weak var textView: UITextView!
     
     //MARK:- PROPERTIES
-    var startOfURL = "https://www.weather-forecast.com/locations/"
-    var endOfURL = "/forecasts/latest"
+    var startOfURL = "https://api.openweathermap.org/data/2.5/weather?q="
+    var endOfURL = "&appid=350009d0e6ca205fae0266ffe8ecc5ea"
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,38 +33,51 @@ class ViewController: UIViewController {
             let completeURL = startOfURL + String(location.replacingOccurrences(of: " ", with: "-")) + endOfURL
                 print(completeURL)
                 if let url = URL(string: completeURL) {
-                    let request = NSMutableURLRequest(url: url)
+//                    let request = NSMutableURLRequest(url: url)
                 
                 //build the task
-                let task = URLSession.shared.dataTask(with: request as URLRequest) { (data, response, error) in
+                    let task = URLSession.shared.dataTask(with: url) { (data, response, error) in
+                        
                     var message = ""
                     
                     if error != nil {
-                        print(error)
+                        print(error ?? "Could not retreive data.")
                     } else {
                         //take the data and conver it to a string
                         if let unwrappedData = data {
-                            let dataString = NSString(data: unwrappedData, encoding: String.Encoding.utf8.rawValue)
+                            //now using JSON
+                            do {
+                                let jsonResult = try JSONSerialization.jsonObject(with: unwrappedData, options: .mutableContainers) as! NSDictionary
+                                print(jsonResult)
+                                
+                                //grab the forecast and store it in message var
+                                if let forecast = ((jsonResult["weather"] as? NSArray)?[0] as? NSDictionary)?["description"] as? String {
+                                    message = "The weather in \(location) is currently \(forecast)"
+                                }
+                            } catch {
+                                print("Could not retrieve data")
+                            }
+                            //let dataString = NSString(data: unwrappedData, encoding: String.Encoding.utf8.rawValue)
                             
                             //trim the whitespace
-                            var dataSeparator = "<h2>\(location) Weather Today </h2>(1&ndash;3 days)</span><p class=\"b-forecast__table-description-content\"><span class=\"phrase\">"
+                            //var dataSeparator = "<h2>\(location) Weather Today </h2>(1&ndash;3 days)</span><p class=\"b-forecast__table-description-content\"><span class=\"phrase\">"
                             
-                            if let weatherArray = dataString?.components(separatedBy: dataSeparator) {
+                            //if let weatherArray = dataString?.components(separatedBy: dataSeparator) {
                                 
                                 //if the array is not empty
-                                if weatherArray.count > 1 {
+                               // if weatherArray.count > 1 {
                                     
                                     //change the string separator to use the terminating string
-                                    dataSeparator = "</span>"
+                                    //dataSeparator = "</span>"
                                     
-                                    let newWeatherArray = weatherArray[1].components(separatedBy: dataSeparator)
+                                  //  let newWeatherArray = weatherArray[1].components(separatedBy: dataSeparator)
                                     
-                                    if newWeatherArray.count > 1 {
+                                    //if newWeatherArray.count > 1 {
                                             
-                                        message = newWeatherArray[0].replacingOccurrences(of: "&deg;", with: "°")
+                                        //message = newWeatherArray[0].replacingOccurrences(of: "&deg;", with: "°")
                                             
-                                        print(message)
-                                    }
+                                        //print(message)
+                                    //}
         
 
                                 }
@@ -77,8 +90,8 @@ class ViewController: UIViewController {
                             DispatchQueue.main.sync {
                                 self.textView.text = message
                             }
-                        }
-                    }
+                        //}
+                    //}
                 }
                     
                 //run the task
